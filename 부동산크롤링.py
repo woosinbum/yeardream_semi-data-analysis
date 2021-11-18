@@ -1,4 +1,6 @@
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException, \
+                                        StaleElementReferenceException
 import pymongo
 import time
 
@@ -19,11 +21,11 @@ with webdriver.Chrome() as driver:
     driver.implicitly_wait(10)
     items = collection.find()
     for item in items:
-        print("좌표:", item)
+        print("좌표:", item['상권_코드'], item['상권_코드_명'], item['위도'], item['경도'])
         latitude, longitude = item['위도'], item['경도']
         driver.get(f"{naver_land_uri}ms={latitude},{longitude}&a=SG&e=RETAIL")
 
-        # 상가 매물 리스트 스크롤 끝까지 내리기
+        # # 상가 매물 리스트 스크롤 끝까지 내리기
         SCROLL_PAUSE_SEC = 1
 
         building_list = driver.find_element_by_xpath(
@@ -69,19 +71,37 @@ with webdriver.Chrome() as driver:
             info['거래방식'] = bill_type_list.text
             info['가격'] = bill_amount_list.text
             link_list[i].click()
-            table = driver.find_element_by_xpath(
-                '//*[@id="detailContents1"]/div[1]/table/tbody'
-                )
-            keys = table.find_elements_by_tag_name('th')
-            values = table.find_elements_by_tag_name('td')
-
-            for key, value in zip(keys, values):
-                if key.text not in ['매물설명']:
-                    info[key.text] = value.text
-            data.append(info)
+            try:
+                table = driver.find_element_by_xpath(
+                    '//*[@id="detailContents1"]/div[1]/table/tbody'
+                    )
+                keys = table.find_elements_by_tag_name('th')
+                values = table.find_elements_by_tag_name('td')
+                for key, value in zip(keys, values):
+                    if key.text not in ['매물설명']:
+                        info[key.text] = value.text
+                if info:
+                    data.append(info)
+            except NoSuchElementException or \
+                    StaleElementReferenceException:
+                time.sleep(3)
+                try:
+                    table = driver.find_element_by_xpath(
+                        '//*[@id="detailContents1"]/div[1]/table/tbody'
+                        )
+                    keys = table.find_elements_by_tag_name('th')
+                    values = table.find_elements_by_tag_name('td')
+                    for key, value in zip(keys, values):
+                        if key.text not in ['매물설명']:
+                            info[key.text] = value.text
+                    if info:
+                        data.append(info)
+                except NoSuchElementException or \
+                        StaleElementReferenceException:
+                    print('Can\'t load element')
         print("링크 수:", len(link_list))
         print("생성된 데이터:", len(data))
 
         # mongodb에 적재
-        collection2.insert_many(data)
-
+        if data:
+            collection2.insert_many(data)
