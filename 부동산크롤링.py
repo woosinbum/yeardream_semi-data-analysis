@@ -69,6 +69,7 @@ for item in items:
                 'div[2]/span[2]'
                 )
             info = {}
+            info['상권_코드'] = item['상권_코드']
             info['분류'] = title.text
             info['거래방식'] = bill_type_list.text
             info['가격'] = bill_amount_list.text
