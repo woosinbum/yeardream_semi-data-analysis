@@ -3,7 +3,7 @@ from selenium.webdriver.support.ui import Select
 
 from pymongo import MongoClient
 
-connection = client = MongoClient("mongodb+srv://user1:uZGuuMyRngM3izgG@cluster0.cu0c3.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+connection = MongoClient("mongodb+srv://user1:uZGuuMyRngM3izgG@cluster0.cu0c3.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
 db = connection.get_database('elice')
 col = db.get_collection('franchise')
 
@@ -13,7 +13,7 @@ type_of_business_values = ['listIndus01', 'listIndus02', 'listIndus03', 'listInd
 headquarters_values = ['listHq01', 'listHq02', 'listHq03']  # 가맹본부별 하위 분류
 brand_values = ['listBrand01', 'listBrand02', 'listBrand03']  # 브랜드별 하위 분류
 
-upjong_values = ['21', '22', '23']  # 외식, 도소매, 서비스
+upjong_values = ['0', '21', '22', '23']  # 전체, 외식, 도소매, 서비스
 # upjong_sub_values
 eat_out_values = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1', 'J1', 'K1', 'L1', 'M1', 'N1', 'O1']  # 외식 - 중분류
 wholesale_and_retail_values = ['A2', 'B2', 'C2', 'D2', 'E2', 'F2', 'G2']  # 도소매 - 중분류
@@ -32,15 +32,6 @@ profitability_menu = ["상호", "자본", "매출액", "영업이익", "당기�
 outline_menu = ["브랜드", "상호", "가맹사업 개시일", "가맹사업 년수", "가맹점수", "가맹본부 임직원수"]
 affiliate_condition_menu = ["브랜드", "상호", "가맹점수", "신규개점", "계약종료", "계약해지", "명의변경", "가맹점 평균매출액", "가맹점 면적(3.3㎡)당 평균 매출액"]
 affiliate_start_up_cost_menu = ["브랜드", "상호", "가입비(가맹비)", "교육비", "보증금", "기타비용(인테리어 비용포함)", "합계(창업비용지수)", "면적당(3.3㎡) 비용", "기준면적(㎡)", "총 비용"]
-
-type_of_business_flag = False
-
-tmp = []
-
-search_condition_text = None
-search_condition_sub_text = None
-upjong_text = None
-upjong_sub_text = None
 
 search_condition_dic = {
     "1": "업종별",
@@ -62,12 +53,14 @@ search_condition_sub_dic = {
 }
 
 upjong_dic = {
+    "0": "전체", 
     "21": "외식",
     "22": "도소매",
     "23": "서비스"
 }
 
 upjong_sub_dic = {
+    "0": "전체",
     "A1": "한식",
     "B1": "분식",
     "C1": "중식",
@@ -97,6 +90,7 @@ upjong_sub_dic = {
     "E3": "부동산 중개",
     "F3": "임대",
     "G3": "숙박",
+    "O ": "유아 관련",
     "H3": "스포츠 관련",
     "I3": "이미용",
     "J3": "자동차 관련",
@@ -114,11 +108,10 @@ upjong_sub_dic = {
 }
 
 def page_crawling(search_condition_value, search_condition_sub_value, upjong_value, upjong_sub_value):
-    result = []
-
     search_condition_text = search_condition_dic[search_condition_value]
     search_condition_sub_text = search_condition_sub_dic[search_condition_sub_value]
     upjong_text = upjong_dic[upjong_value]
+    upjong_sub_text = upjong_sub_dic[upjong_sub_value]
 
     with webdriver.Chrome(executable_path='/Users/miae/Desktop/yeardream/project/chromedriver') as driver:
         driver.get("https://franchise.ftc.go.kr/mnu/00014/program/firHope/view.do")
@@ -134,20 +127,15 @@ def page_crawling(search_condition_value, search_condition_sub_value, upjong_val
         driver.implicitly_wait(1)  # 암시적 대기
         search_condition_sub.select_by_value(search_condition_sub_value)
 
-        if search_condition_value == '1':
-            global type_of_business_flag
-
-            if type_of_business_flag:
-                upjong.select_by_value(upjong_value)
-            else:  # False: 처음 => 전체
-                type_of_business_flag = True
-        else:
+        if upjong_value != '0':  # 업종 대분류: 외식, 도소매, 서비스
             upjong.select_by_value(upjong_value)
-            driver.implicitly_wait(1)
-            upjong_sub.select_by_value(upjong_sub_value)
 
-        search_btn.click()
+            if upjong_sub_value != '0':  # 업종 소분류: 전체 X
+                driver.implicitly_wait(1)
+                upjong_sub.select_by_value(upjong_sub_value)
         
+        search_btn.click()
+    
         table = driver.find_element_by_xpath('//*[@id="content"]/div[4]/table/tbody')
         tr = table.find_elements_by_tag_name('tr')
 
@@ -177,28 +165,29 @@ def page_crawling(search_condition_value, search_condition_sub_value, upjong_val
                 arr = affiliate_condition_menu
             elif search_condition_sub_value == 'listBrand03':
                 arr = affiliate_start_up_cost_menu
-
-            if upjong_sub_value is None:
-                upjong_sub_text = "전체" 
-            else:
-                upjong_sub_text = upjong_sub_dic[upjong_sub_value]
             
             tmp_dic = {
                 "비교 항목": search_condition_text,
-                "세부 비교항목": search_condition_sub_text,
-                "업종": upjong_text,
-                "세부 업종": upjong_sub_text
+                "세부 비교 항목": search_condition_sub_text,
+                "업종 대분류": upjong_text,
+                "업종 소분류": upjong_sub_text
             }
-            
+
             for i in range(len(arr)):
-                tmp_dic[arr[i]] = td[i]
+                # 마지막 컬럼 값이 없으면 td[i]가 아예 존재하지 않음
+                if len(td) == i: break
+                
+                tmp_dic[arr[i]] = td[i].replace('\n', ' ')
+                # print(arr[i], td[i])
             
-            col.insert_one(tmp_dic)
-    
-    return result
+            # print(tmp_dic)
+            try:
+                col.insert_one(tmp_dic)
+            except Exception as e:
+                print(e)
 
 
-for search_condition_value in search_condition_values:
+for search_condition_value in search_condition_values:  # 비교 항목
     if search_condition_value == '1':
         search_condition_sub_arr = type_of_business_values
     elif search_condition_value == '2':
@@ -206,20 +195,25 @@ for search_condition_value in search_condition_values:
     elif search_condition_value == '3':
         search_condition_sub_arr = brand_values
 
-    
-    for search_condition_sub_value in search_condition_sub_arr:
-        for upjong_value in upjong_values:
+    for search_condition_sub_value in search_condition_sub_arr:  # 비교 세부 항목
+        for upjong_value in upjong_values:  # 업종 대분류
             if upjong_value == '21':
                 upjong_sub_arr = eat_out_values
             elif upjong_value == '22':
                 upjong_sub_arr = wholesale_and_retail_values
             elif upjong_value == '23':
-                upjong_sub_arr == service_values
-            
+                upjong_sub_arr = service_values
+
+            # 비교 항목이 업종별일 때
+            # 업종 대분류: 전체(0)/외식/도소매/서비스 -> 업종 소분류: 전체
             if search_condition_value == '1':
-                upjong_sub_value = None
-                
-                tmp = page_crawling(search_condition_value, search_condition_sub_value, upjong_value, upjong_sub_value)
+                upjong_sub_value = '0'
+
+                page_crawling(search_condition_value, search_condition_sub_value, upjong_value, upjong_sub_value)
             else:
+                # 비교 항목: 가맹본부별(2)/브랜드별(3)
+                # 업종(대분류, 소분류): 전체 -> X
+                if upjong_value == '0': continue
+                
                 for upjong_sub_value in upjong_sub_arr:
-                    tmp = page_crawling(search_condition_value, search_condition_sub_value, upjong_value, upjong_sub_value)
+                    page_crawling(search_condition_value, search_condition_sub_value, upjong_value, upjong_sub_value)
