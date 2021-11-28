@@ -3,25 +3,24 @@ from selenium.common.exceptions import NoSuchElementException, \
                                         StaleElementReferenceException
 import pymongo
 import time
+from multiprocessing import Pool
 
-options = webdriver.FirefoxOptions()
-options.headless = True
 
-# mongodb에서 상권 좌표 가져오기
-atlas_url = "mongodb+srv://user1:uZGuuMyRngM3izgG@cluster0.cu0c3.mongodb.net"
-connection = pymongo.MongoClient(
-    atlas_url+"/myFirstDatabase?retryWrites=true&w=majority"
-    )
-db = connection.get_database("elice")
-collection = db.get_collection("area_info")
-collection2 = db.get_collection("real_estate")
+def land_crawling(item):
+    options = webdriver.FirefoxOptions()
+    options.headless = True
 
-naver_land = "http://new.land.naver.com/offices?"
+    # mongodb에서 상권 좌표 가져오기
+    connection = pymongo.MongoClient("mongodb+srv://user1:uZGuuMyRngM3izgG@cluster0.cu0c3.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+    db = connection.get_database("elice")
+    collection2 = db.get_collection("real_estate")
 
-# 상권 좌표로 검색한 페이지에서 크롤링
-items = collection.find()
-collection2.delete_many({})
-for item in items:
+    naver_land = "http://new.land.naver.com/offices?"
+
+    if list(collection2.find({'상권_코드':item["상권_코드"]})):
+        print(f"{item['상권_코드']} skip")
+        return
+    # 상권 좌표로 검색한 페이지에서 크롤링
     with webdriver.Firefox(options=options) as driver:
         driver.implicitly_wait(10)
         print("**********************************************************")
@@ -108,3 +107,17 @@ for item in items:
         # mongodb에 적재
         if data:
             collection2.insert_many(data)
+        driver.quit()
+
+
+if __name__ == '__main__':
+    connection = pymongo.MongoClient("mongodb+srv://user1:uZGuuMyRngM3izgG@cluster0.cu0c3.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+    db = connection.get_database("elice")
+    collection = db.get_collection("area_info")
+    collection2 = db.get_collection("real_estate")
+
+    # collection2.delete_many({})
+    items = list(collection.find())
+
+    pool = Pool(processes=1)  # 멀티 프로세스 시 오히려 느려짐
+    pool.map(land_crawling, items)
