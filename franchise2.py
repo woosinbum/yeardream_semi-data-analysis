@@ -179,15 +179,15 @@ def page_crawling(search_condition_value, search_condition_sub_value, upjong_val
                 
                 if search_condition_value == "1":
                     tmp_dic[arr[i]] = td[i].replace("\n", " ")
-                else:
-                    # if search_condition_value == "3" and search_condition_sub_value == "listBrand02" and upjong_value == "23" and upjong_sub_value == "S3":
-                    #     if i >= 7:
-                    #         tmp_dic[arr[i]] = 0
+                # else:
+                #     if search_condition_value == "3" and search_condition_sub_value == "listBrand03" and upjong_value == "23" and upjong_sub_value == "Q3":
+                #         if i >= 7:
+                #             tmp_dic[arr[i]] = 0
 
-                    #         continue
+                #             continue
 
                     if ((search_condition_value == "2" and i >= 1) or (search_condition_value == "3" and i >= 2)):
-                        if i == 7:
+                        if i == 6:
                             td[i] = td[i].replace("\n", " ")
                             td[i] = td[i].split(" ")[0]
                         
@@ -212,35 +212,28 @@ def page_crawling(search_condition_value, search_condition_sub_value, upjong_val
                 print(e)
 
 
-# for search_condition_value in search_condition_values:  # 비교 항목
-#     if search_condition_value == "1":
-#         search_condition_sub_arr = type_of_business_values
-#     elif search_condition_value == "2":
-#         search_condition_sub_arr = headquarters_values
-#     elif search_condition_value == "3":
-#         search_condition_sub_arr = brand_values
-    # for search_condition_sub_value in search_condition_sub_arr:  # 비교 세부 항목
+for search_condition_value in search_condition_values:  # 비교 항목
+    if search_condition_value == "1":
+        search_condition_sub_arr = type_of_business_values
+    elif search_condition_value == "2":
+        search_condition_sub_arr = headquarters_values
+    elif search_condition_value == "3":
+        search_condition_sub_arr = brand_values
 
-search_condition_value = "3"
-search_condition_sub_value = "listBrand03"
-# upjong_value = "23"
+    for search_condition_sub_value in search_condition_sub_arr:  # 비교 세부 항목
+        for upjong_value in upjong_values:  # 업종 대분류
+            if upjong_value == "21":
+                upjong_sub_arr = eat_out_values
+            elif upjong_value == "22":
+                upjong_sub_arr = wholesale_and_retail_values
+            elif upjong_value == "23":
+                upjong_sub_arr = service_values
 
-# for search_condition_sub_value in brand_values:
-for upjong_value in upjong_values:  # 업종 대분류
-    if upjong_value == "21":
-        upjong_sub_arr = eat_out_values
-    elif upjong_value == "22":
-        upjong_sub_arr = wholesale_and_retail_values
-    elif upjong_value == "23":
-        upjong_sub_arr = service_values
-
-    # 비교 항목이 업종별일 때
-    # 업종 대분류: 전체(0)/외식/도소매/서비스 -> 업종 소분류: 전체
-    # if search_condition_value == "1":
-    #     upjong_sub_value = "0"
-    #     page_crawling(search_condition_value, search_condition_sub_value, upjong_value, upjong_sub_value)
-    #     print(search_condition_value, search_condition_sub_value, upjong_sub_value)
-    # else:
-    for upjong_sub_value in upjong_sub_arr:
-        page_crawling(search_condition_value, search_condition_sub_value, upjong_value, upjong_sub_value)
-        print(search_condition_value, search_condition_sub_value, upjong_value, upjong_sub_value)
+            # 비교 항목이 업종별일 때
+            # 업종 대분류: 전체(0)/외식/도소매/서비스 -> 업종 소분류: 전체
+            if search_condition_value == "1":
+                upjong_sub_value = "0"
+                page_crawling(search_condition_value, search_condition_sub_value, upjong_value, upjong_sub_value)
+            else:
+                for upjong_sub_value in upjong_sub_arr:
+                    page_crawling(search_condition_value, search_condition_sub_value, upjong_value, upjong_sub_value)
